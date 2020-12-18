@@ -5,78 +5,78 @@ import pandas as pd
 import plotly.graph_objects as go
 
 
-def run():
+print("Python Initiated")
 
-    print("Python Initiated")
+data_folder = "./Data/"
+# data_folder = "./app/dashboard/Data/"
 
-    data_folder = "./Data/"
-    # data_folder = "./app/dashboard/Data/"
+state_level = pd.read_csv(data_folder+"state_level.csv")
+
+years = [{'label':y,'value':y} for y in state_level['year'].unique()]
+states = [{'label':s.title(),'value':s} for s in state_level['state'].unique()]
+
+colors = dict(background='#f1f6f9', text1='#14274e', text2='#394867', border='#9ba4b4')
+
+# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__)
+# app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+
+year_selector = dcc.Dropdown(
+        id='year_selection',
+        options=years,
+        value=2019,
+        clearable=False
+    )
+
+state_selector = dcc.Dropdown(
+        id='state_selection',
+        options=states,
+        value='UTTAR PRADESH',
+        clearable=False
+    )
+app.layout = html.Div([
+    year_selector,
     
-    state_level = pd.read_csv(data_folder+"state_level.csv")
+    html.Div(children=[
+            html.Div(dcc.Graph(id = 'ec'), style={'display':'inline-block'}),
+            html.Div(dcc.Graph(id = 'pc'), style={'display':'inline-block'}),
+            html.Div(dcc.Graph(id = 'popular'), style={'display':'inline-block'})],
+        style ={'display':'inline-block', 'background-color':colors['background'], 
+                'margin-left':'auto','margin-right':'auto'}
 
-    years = [{'label':y,'value':y} for y in state_level['year'].unique()]
-    states = [{'label':s.title(),'value':s} for s in state_level['state'].unique()]
+    ), 
+    state_selector,
+    html.Div(children=[
+            html.Div(dcc.Graph(id = 'state_constituency'), style={'display':'inline-block'}),
+            html.Div(dcc.Graph(id = 'state_vote'), style={'display':'inline-block'})],
+        style ={'display':'inline-block', 'background-color':colors['background'], 
+                'margin-left':'auto','margin-right':'auto',
+                }
 
-    colors = dict(background='#f1f6f9', text1='#14274e', text2='#394867', border='#9ba4b4')
+    )
+], style={'background-color':colors['background'],
+            'max-width':'800px','borderStyle':'solid', 'borderRadius':'15px',
+            'borderWidth':'2px', 'borderColor':colors['border'],'padding':'10px'})
 
-    # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+@app.callback(
+    [dash.dependencies.Output('ec', 'figure'),
+    dash.dependencies.Output('popular', 'figure'),
+    dash.dependencies.Output('pc', 'figure')],
+    dash.dependencies.Output('state_vote', 'figure'),
+    dash.dependencies.Output('state_constituency', 'figure'),
+    [dash.dependencies.Input('year_selection', 'value'),
+    dash.dependencies.Input('state_selection', 'value')])
+def update_year_plots(year, state):
+    year_plots = generate_year_plots(year, data_folder)
+    state_plots = generate_state_plots(year, state, data_folder)
+    return year_plots['ec'], year_plots['popular'], year_plots['pc'], \
+        state_plots['state_vote'], state_plots['state_constituency']   
 
-    # app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-    app = dash.Dash(__name__)
 
-    year_selector = dcc.Dropdown(
-            id='year_selection',
-            options=years,
-            value=2019,
-            clearable=False
-        )
-
-    state_selector = dcc.Dropdown(
-            id='state_selection',
-            options=states,
-            value='UTTAR PRADESH',
-            clearable=False
-        )
-    app.layout = html.Div([
-        year_selector,
-        
-        html.Div(children=[
-                html.Div(dcc.Graph(id = 'ec'), style={'display':'inline-block'}),
-                html.Div(dcc.Graph(id = 'pc'), style={'display':'inline-block'}),
-                html.Div(dcc.Graph(id = 'popular'), style={'display':'inline-block'})],
-            style ={'display':'inline-block', 'background-color':colors['background'], 
-                    'margin-left':'auto','margin-right':'auto'}
-
-        ), 
-        state_selector,
-        html.Div(children=[
-                html.Div(dcc.Graph(id = 'state_constituency'), style={'display':'inline-block'}),
-                html.Div(dcc.Graph(id = 'state_vote'), style={'display':'inline-block'})],
-            style ={'display':'inline-block', 'background-color':colors['background'], 
-                    'margin-left':'auto','margin-right':'auto',
-                    }
-
-        )
-    ], style={'background-color':colors['background'],
-                'max-width':'800px','borderStyle':'solid', 'borderRadius':'15px',
-                'borderWidth':'2px', 'borderColor':colors['border'],'padding':'10px'})
-
-    @app.callback(
-        [dash.dependencies.Output('ec', 'figure'),
-        dash.dependencies.Output('popular', 'figure'),
-        dash.dependencies.Output('pc', 'figure')],
-        dash.dependencies.Output('state_vote', 'figure'),
-        dash.dependencies.Output('state_constituency', 'figure'),
-        [dash.dependencies.Input('year_selection', 'value'),
-        dash.dependencies.Input('state_selection', 'value')])
-    def update_year_plots(year, state):
-        year_plots = generate_year_plots(year, data_folder)
-        state_plots = generate_state_plots(year, state, data_folder)
-        return year_plots['ec'], year_plots['popular'], year_plots['pc'], \
-            state_plots['state_vote'], state_plots['state_constituency']   
-    
-    app.run_server(host='0.0.0.0', port=8080)
-    # app.run_server(debug=True, port=8080)
+# app.run_server(host='0.0.0.0', port=8080)
+# app.run_server(debug=True, port=8080)
 
 def generate_year_plots(year, data_folder):
     ec = pd.read_csv(data_folder+"ec.csv")
@@ -225,7 +225,8 @@ def generate_state_plots(year, state, data_folder):
 
     return {'state_vote':state_votes_fig, 'state_constituency':state_constituency_fig}
 
+server = app.server
 
 if __name__ == '__main__':
-    run()
+    server.run(host="0.0.0.0", port=8080,debug=True)
 
